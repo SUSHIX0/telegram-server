@@ -79,4 +79,9 @@ orderText += `Итог: ${total.toFixed(2)} €`;
     }
 });
 
+// Роут для проверки, что сервер жив
+app.get("/ping", (req, res) => {
+  res.send("Alive!");
+});
+
 app.listen(3000, () => console.log('Server started on port 3000'));
