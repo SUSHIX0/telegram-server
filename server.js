@@ -4,6 +4,20 @@ import fetch from 'node-fetch';
 import cors from 'cors';
 import 'dotenv/config';
 
+import nodemailer from 'nodemailer';
+
+// Создаём транспорт для отправки почты
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: Number(process.env.EMAIL_PORT),
+  secure: process.env.EMAIL_PORT === '465', // true для 465, false для 587
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -75,6 +89,20 @@ orderText += `Итог: ${total.toFixed(2)} €`;
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: chatId, text: orderText })
         });
+
+        // Отправка клиенту на почту
+if (order.checkout.email) {
+  await transporter.sendMail({
+    from: `"SUSHI STORE" <${process.env.EMAIL_USER}>`, // кто отправляет
+    to: order.checkout.email,                           // кому
+    subject: `Ваш заказ №${orderNumberStr}`,            // тема письма
+    text: orderText                                    // тело письма
+    // можно добавить HTML версию: html: '<b>Текст заказа</b>'
+  });
+
+  console.log('✅ Заказ отправлен клиенту на email:', order.checkout.email);
+}
+
 
         res.json({ success: true });
     } catch (err) {
