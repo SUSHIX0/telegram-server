@@ -43,6 +43,10 @@ orderText += `Комментарий: ${order.checkout.comment || '-'}\n\n`;
 // ===== Товары =====
 let subtotal = 0;
 orderText += `Товары:\n`;
+if (!Array.isArray(order.cart)) {
+    throw new Error('order.cart отсутствует или не массив');
+}
+
 order.cart.forEach(item => {
     const lineTotal = item.unitPrice * item.qty;
     subtotal += lineTotal;
