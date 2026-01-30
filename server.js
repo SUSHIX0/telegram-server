@@ -23,11 +23,12 @@ const mailTransporter = nodemailer.createTransport({
     }
 });
 
+// проверка транспортера при старте
 mailTransporter.verify(err => {
     if (err) {
-        console.error('Mail transporter error:', err);
+        console.error('Mail transporter verification failed:', err);
     } else {
-        console.log('Mail transporter ready');
+        console.log('Mail transporter verified and ready');
     }
 });
 
@@ -52,9 +53,7 @@ app.post('/order', async (req, res) => {
         orderText += `Метод получения: ${order.checkout.method}\n`;
 
         let date = order.checkout.date || '-';
-        if (date.startsWith('Дата:')) {
-            date = date.replace(/^Дата:\s*/, '');
-        }
+        if (date.startsWith('Дата:')) date = date.replace(/^Дата:\s*/, '');
         orderText += `Дата: ${date}\n`;
 
         orderText += `Время: ${order.checkout.time || '-'}\n`;
@@ -66,9 +65,7 @@ app.post('/order', async (req, res) => {
         let subtotal = 0;
         orderText += `Товары:\n`;
 
-        if (!Array.isArray(order.cart)) {
-            throw new Error('order.cart отсутствует или не массив');
-        }
+        if (!Array.isArray(order.cart)) throw new Error('order.cart отсутствует или не массив');
 
         order.cart.forEach(item => {
             const lineTotal = item.unitPrice * item.qty;
@@ -87,38 +84,46 @@ app.post('/order', async (req, res) => {
         orderText += `Итог: ${total.toFixed(2)} €`;
 
         // ===== Telegram =====
-        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: process.env.TELEGRAM_CHAT_ID,
-                text: orderText
-            })
-        });
+        try {
+            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: process.env.TELEGRAM_CHAT_ID,
+                    text: orderText
+                })
+            });
+            console.log('Telegram message sent');
+        } catch (tgErr) {
+            console.error('Telegram error:', tgErr);
+        }
 
         // ===== Email =====
-        await mailTransporter.sendMail({
-            from: process.env.GMAIL_USER,
-            to: [
-                process.env.ORDER_NOTIFY_EMAIL,
-                order.checkout.email
-            ].filter(Boolean),
-            subject: `Новый заказ № ${orderNumberStr}`,
-            text: orderText
-        });
+        try {
+            const recipients = [process.env.ORDER_NOTIFY_EMAIL, order.checkout.email].filter(Boolean);
+            console.log('Sending email to:', recipients);
+
+            await mailTransporter.sendMail({
+                from: process.env.GMAIL_USER,
+                to: recipients,
+                subject: `Новый заказ № ${orderNumberStr}`,
+                text: orderText
+            });
+
+            console.log('Email sent successfully');
+        } catch (emailErr) {
+            console.error('Email sending error:', emailErr);
+        }
 
         res.json({ success: true });
+
     } catch (err) {
-        console.error(err);
+        console.error('Order processing error:', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
 // ===== Health check =====
-app.get('/ping', (req, res) => {
-    res.send('Alive!');
-});
+app.get('/ping', (req, res) => res.send('Alive!'));
 
-app.listen(3000, () => {
-    console.log('Server started on port 3000');
-});
+app.listen(3000, () => console.log('Server started on port 3000'));
