@@ -61,6 +61,17 @@ orderText += `Доставка: ${order.delivery.toFixed(2)} €\n`;
 const discount = Math.abs(order.discount || 0);
 orderText += `Скидка: ${discount.toFixed(2)} €\n\n`;
 
+// ===== ОКРУГЛЕНИЕ (ТОЛЬКО НАЛИЧНЫЕ) =====
+const paymentMethod = (order.checkout.payment || '').toLowerCase();
+
+if (paymentMethod === 'наличные' && order.rounding) {
+    const rounding = Number(order.rounding);
+
+    if (rounding !== 0) {
+        orderText += `Округление: ${rounding > 0 ? '+' : ''}${rounding.toFixed(2)} €\n`;
+    }
+}
+
 // ===== Итог (вычитаем скидку) =====
 const total = subtotal - discount + order.delivery;
 orderText += `Итог: ${total.toFixed(2)} €`;
