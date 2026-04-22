@@ -57,23 +57,17 @@ order.cart.forEach(item => {
 orderText += `\nПодытог: ${subtotal.toFixed(2)} €\n`;
 orderText += `Доставка: ${order.delivery.toFixed(2)} €\n`;
 
-// всегда показываем скидку как положительное число
+// скидка
 const discount = Math.abs(order.discount || 0);
-orderText += `Скидка: ${discount.toFixed(2)} €\n\n`;
+orderText += `Скидка: ${discount.toFixed(2)} €\n`;
 
-// ===== ОКРУГЛЕНИЕ (ТОЛЬКО НАЛИЧНЫЕ) =====
-const paymentMethod = (order.checkout.payment || '').toLowerCase();
+// округление
+const rounding = isNaN(order.rounding) ? 0 : Number(order.rounding);
+orderText += `Округление: ${rounding.toFixed(2)} €\n\n`;
 
-if (paymentMethod === 'наличные' && order.rounding) {
-    const rounding = Number(order.rounding);
+// ===== Итог =====
+const total = subtotal - discount + order.delivery + rounding;
 
-    if (rounding !== 0) {
-        orderText += `Округление: ${rounding > 0 ? '+' : ''}${rounding.toFixed(2)} €\n`;
-    }
-}
-
-// ===== Итог (вычитаем скидку) =====
-const total = subtotal - discount + order.delivery;
 orderText += `Итог: ${total.toFixed(2)} €`;
 
 
