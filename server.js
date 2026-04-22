@@ -59,16 +59,24 @@ orderText += `Доставка: ${order.delivery.toFixed(2)} €\n`;
 
 // скидка
 const discount = Math.abs(order.discount || 0);
-orderText += `Скидка: ${discount.toFixed(2)} €\n`;
 
-// округление
-const rounding = isNaN(order.rounding) ? 0 : Number(order.rounding);
+// базовая сумма
+const rawTotal = subtotal - discount + order.delivery;
+
+let rounding = 0;
+let total = rawTotal;
+
+// округление ТОЛЬКО для наличных
+if ((order.checkout?.payment || '').toLowerCase() === 'наличные') {
+    total = roundCash(rawTotal);
+    rounding = +(total - rawTotal).toFixed(2);
+}
+
+orderText += `Скидка: ${discount.toFixed(2)} €\n`;
 orderText += `Округление: ${rounding.toFixed(2)} €\n\n`;
 
-// ===== Итог =====
-const total = subtotal - discount + order.delivery + rounding;
-
 orderText += `Итог: ${total.toFixed(2)} €`;
+
 
 
 
