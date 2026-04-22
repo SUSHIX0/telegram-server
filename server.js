@@ -4,6 +4,10 @@ import fetch from 'node-fetch';
 import cors from 'cors';
 import 'dotenv/config';
 
+function roundCash(amount) {
+    return Math.round(amount * 20) / 20;
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -61,15 +65,14 @@ orderText += `Доставка: ${order.delivery.toFixed(2)} €\n`;
 const discount = Math.abs(order.discount || 0);
 
 // базовая сумма
-const rawTotal = subtotal - discount + order.delivery;
+let total = subtotal - discount + order.delivery;
 
 let rounding = 0;
-let total = rawTotal;
 
-// округление ТОЛЬКО для наличных
-if ((order.checkout?.payment || '').toLowerCase() === 'наличные') {
-    total = roundCash(rawTotal);
-    rounding = +(total - rawTotal).toFixed(2);
+if (order.checkout.payment?.toLowerCase() === 'наличные') {
+    const roundedTotal = roundCash(total);
+    rounding = roundedTotal - total;
+    total = roundedTotal;
 }
 
 orderText += `Скидка: ${discount.toFixed(2)} €\n`;
