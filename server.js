@@ -3,6 +3,11 @@ import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
 import 'dotenv/config';
+const subjectMap = {
+  ru: "Заказ",
+  en: "Order",
+  et: "Tellimus"
+};
 
 function roundCash(amount) {
     return Math.round(amount * 20) / 20;
@@ -20,6 +25,7 @@ app.post('/order', async (req, res) => {
 
         const orderNumberStr = orderNumber.toString().padStart(3, '0');
         const order = req.body;
+        const lang = order.checkout?.lang || order.lang || "en";
         const now = new Date();
         const pad = (n) => n.toString().padStart(2, '0');
 
@@ -107,7 +113,7 @@ try {
         body: JSON.stringify({
             from: "SushiX <onboarding@resend.dev>",
             to: order.checkout.email,
-            subject: `Заказ #${orderNumberStr}`,
+            subject: `${subjectMap[lang] || "Order"} #${orderNumberStr}`,
             html: buildEmail({
                 orderId: orderNumberStr,
                 items: order.cart.map(i => ({
@@ -165,7 +171,8 @@ const t = {
     order: "Заказ",
     item: "Товар",
     qty: "Кол-во",
-    price: "Цена",
+    price: "Цена за шт",
+    price2: "Сумма",
     items: "Товары",
     promo: "Промокод",
     discount: "Скидка",
@@ -192,6 +199,7 @@ const t = {
     item: "Item",
     qty: "Qty",
     price: "Price",
+    price2: "Total",
     items: "Items",
     promo: "Promo code",
     discount: "Discount",
@@ -217,7 +225,8 @@ const t = {
     order: "Tellimus",
     item: "Toode",
     qty: "Kogus",
-    price: "Hind",
+    price: "Tüki hind",
+    price2: "Summa",
     items: "Kaubad",
     promo: "Sooduskood",
     discount: "Allahindlus",
@@ -261,19 +270,29 @@ const t = {
   const isDelivery = normalizeMethod(data.method) === "delivery";
 
   // 📦 ITEMS
-  const itemsHtml = items.map(i => `
+  const itemsHtml = items.map(i => {
+  const total = i.qty * i.price;
+
+  return `
     <tr>
       <td style="padding:10px;border-bottom:1px solid #eee;text-align:left;">
         ${i.name}
       </td>
-      <td style="padding:10px;border-bottom:1px solid #eee;text-align:center;width:80px;">
+
+      <td style="padding:10px;border-bottom:1px solid #eee;text-align:center;width:180px;">
+        ${i.price.toFixed(2)}€
+      </td>
+
+      <td style="padding:10px;border-bottom:1px solid #eee;text-align:center;width:40px;">
         ${i.qty}
       </td>
-      <td style="padding:10px;border-bottom:1px solid #eee;text-align:right;width:100px;">
-        ${i.price}€
+
+      <td style="padding:10px;border-bottom:1px solid #eee;text-align:right;">
+        ${total.toFixed(2)}€
       </td>
     </tr>
-  `).join("");
+  `;
+}).join("");
 
   const subtotal = data.items.reduce((s, i) => s + i.qty * i.price, 0);
 
@@ -284,11 +303,14 @@ const discount = Number(data.discount || 0);
 
 const promoCode = (data.promo || "").trim().toUpperCase();
 
+const hasPromo = promoCode.length > 0;
+const hasDiscount = discount < 0;
+
 // CASH CHECK
 const isCash = data.payment === "Наличные";
 
 // BASE TOTAL
-const baseTotal = subtotal + deliveryPrice - discount;
+const baseTotal = subtotal + deliveryPrice + discount;
 
 function normalizeMethod(value = "") {
   const v = value.toLowerCase().trim();
@@ -337,17 +359,20 @@ if (isCash) {
 </tr>
 ` : ""}
 
-      ${discount > 0 ? `
+${hasPromo ? `
 <tr>
   <td></td>
   <td style="text-align:right;color:#999;">
     <b>${t.promo}:</b> ${promoCode}
   </td>
 </tr>
+` : ""}
+
+${hasDiscount ? `
 <tr>
   <td></td>
   <td style="text-align:right;color:green;">
-    <b>${t.discount}:</b> -${discount}€
+    <b>${t.discount}:</b> ${discount}€
   </td>
 </tr>
 ` : ""}
@@ -405,10 +430,11 @@ ${isCash ? `
         <!-- ITEMS -->
         <table width="100%" style="border-collapse:collapse;">
           <tr style="background:#f7f7f7;font-weight:bold;">
-            <td style="padding:10px;">${t.item}</td>
-            <td style="padding:10px;text-align:center;">${t.qty}</td>
-            <td style="padding:10px;text-align:right;">${t.price}</td>
-          </tr>
+  <td style="padding:10px;">${t.item}</td>
+  <td style="padding:10px;text-align:center;width:140px;">${t.price}</td>
+  <td style="padding:10px;text-align:center;width:60px;">${t.qty}</td>
+  <td style="padding:10px;text-align:right;width:100px;">${t.price2}</td>
+</tr>
           ${itemsHtml}
         </table>
 
