@@ -450,7 +450,7 @@ ${isCash ? `
           <tr>
             <td style="width:50%;">
               <b>${deliveryLabel}:</b><br>
-              ${data.dateTime}
+              ${data.date || "-"} ${data.time || "-"}
             </td>
 
             <td style="width:50%; text-align:right;">
