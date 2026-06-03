@@ -25,6 +25,9 @@ app.post('/order', async (req, res) => {
 
         const orderNumberStr = orderNumber.toString().padStart(3, '0');
         const order = req.body;
+
+        console.log("CART:", JSON.stringify(order.cart, null, 2));
+
         const lang = order.checkout?.lang || order.lang || "en";
         const now = new Date();
         const pad = (n) => n.toString().padStart(2, '0');
@@ -102,6 +105,56 @@ orderText += `Итог: ${total.toFixed(2)} €`;
         });
 
 
+// ===== GOOGLE SHEETS =====
+
+const itemsTotal = subtotal;
+
+const payload = {
+    orderNumber: orderNumberStr,
+    orderDateTime: dateTime,
+
+    name: order.checkout.name,
+    phone: order.checkout.phone,
+    email: order.checkout.email,
+
+    cart: JSON.stringify(
+    order.cart.map(item => ({
+        id: item.id,
+        qty: item.qty,
+        price: item.unitPrice
+    }))
+),
+
+    comment: order.checkout.comment || "",
+
+    paymentMethod: order.checkout.payment || "",
+    deliveryMethod: order.checkout.method || "",
+
+    deliveryDate: date,
+    deliveryTime: order.checkout.time || "",
+
+    address: order.checkout.address || "",
+
+    language: order.lang || "",
+
+    promo: order.checkout.promo || "",
+
+    total: total,
+    itemsTotal: itemsTotal,
+    deliveryPrice: order.delivery || 0,
+    discount: discount,
+    rounding: rounding
+};
+
+await fetch(process.env.GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+});
+
+
 // ===== EMAIL =====
 try {
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -134,7 +187,7 @@ try {
                 comment: order.checkout.comment,
                 dateTime: dateTime,
                 time: order.checkout.time,
-                date: order.checkout.date
+                date: date
             }, order.lang)
         })
     });
