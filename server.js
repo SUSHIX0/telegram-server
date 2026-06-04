@@ -287,7 +287,7 @@ const t = {
     date: "Дата заказа",
     support: "По вопросам",
     cash: "Наличные",
-    card: "Банковская карта",
+    card: "Карта",
     total: "ИТОГ"
   },
   en: {
@@ -316,7 +316,7 @@ const t = {
     date: "Order date",
     support: "For questions",
     cash: "Cash",
-    card: "Bank card",
+    card: "Card",
     total: "TOTAL"
   },
   et: {
