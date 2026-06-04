@@ -30,11 +30,26 @@ app.post('/order', async (req, res) => {
 
         const lang = order.checkout?.lang || order.lang || "en";
         const now = new Date();
-        const pad = (n) => n.toString().padStart(2, '0');
 
-const dateTime = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}, ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-        const timestamp = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}, ${now.getDate().toString().padStart(2,'0')}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getFullYear()}`;
+const estoniaDate = new Intl.DateTimeFormat('et-EE', {
+    timeZone: 'Europe/Tallinn',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+}).formatToParts(now);
 
+const get = type => estoniaDate.find(x => x.type === type)?.value;
+
+const dateTime =
+    `${get('day')}.${get('month')}.${get('year')}, ${get('hour')}:${get('minute')}:${get('second')}`;
+
+const timestamp =
+    `${get('hour')}:${get('minute')}, ${get('day')}.${get('month')}.${get('year')}`;
+    
         // ===== Формирование текста заказа =====
 let orderText = `Заказ № ${orderNumberStr}\n\n`;
 
