@@ -25,6 +25,20 @@ function normalizePayment(payment = "") {
     return payment;
 }
 
+function normalizeMethodRu(method = "") {
+    const m = method.toLowerCase().trim();
+
+    if (m === "delivery" || m === "доставка" || m === "kohaletoimetamine") {
+        return "Доставка";
+    }
+
+    if (m === "pickup" || m === "самовывоз" || m === "tulen ise järele") {
+        return "Самовывоз";
+    }
+
+    return method;
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
