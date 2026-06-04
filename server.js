@@ -13,6 +13,18 @@ function roundCash(amount) {
     return Math.round(amount * 20) / 20;
 }
 
+function normalizePayment(payment = "") {
+    const p = payment.toLowerCase().trim();
+
+    if (p === "cash" || p === "наличные")
+        return "Наличные";
+
+    if (p === "card" || p === "карта")
+        return "Карта";
+
+    return payment;
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -29,6 +41,8 @@ app.post('/order', async (req, res) => {
         console.log("CART:", JSON.stringify(order.cart, null, 2));
 
         const lang = order.checkout?.lang || order.lang || "en";
+        const paymentRu = normalizePayment(order.checkout.payment);
+        const methodRu = normalizeMethodRu(order.checkout.method);
         const now = new Date();
 
 const estoniaDate = new Intl.DateTimeFormat('et-EE', {
@@ -49,7 +63,7 @@ const dateTime =
 
 const timestamp =
     `${get('hour')}:${get('minute')}, ${get('day')}.${get('month')}.${get('year')}`;
-    
+
         // ===== Формирование текста заказа =====
 let orderText = `Заказ № ${orderNumberStr}\n\n`;
 
@@ -58,8 +72,8 @@ orderText += `Язык: ${order.lang}\n`;
 orderText += `Имя: ${order.checkout.name}\n`;
 orderText += `Телефон: ${order.checkout.phone}\n`;
 orderText += `Email: ${order.checkout.email}\n`;
-orderText += `Способ оплаты: ${order.checkout.payment}\n`;
-orderText += `Метод получения: ${order.checkout.method}\n`;
+orderText += `Способ оплаты: ${paymentRu}\n`;
+orderText += `Метод получения: ${methodRu}\n`;
 
 // корректируем дату
 let date = order.checkout.date || '-';
@@ -142,8 +156,8 @@ const payload = {
 
     comment: order.checkout.comment || "",
 
-    paymentMethod: order.checkout.payment || "",
-    deliveryMethod: order.checkout.method || "",
+    paymentMethod: paymentRu,
+    deliveryMethod: methodRu,
 
     deliveryDate: date,
     deliveryTime: order.checkout.time || "",
@@ -258,6 +272,8 @@ const t = {
     comment: "Комментарий",
     date: "Дата заказа",
     support: "По вопросам",
+    cash: "Наличные",
+    card: "Банковская карта",
     total: "ИТОГ"
   },
   en: {
@@ -285,6 +301,8 @@ const t = {
     comment: "Comment",
     date: "Order date",
     support: "For questions",
+    cash: "Cash",
+    card: "Bank card",
     total: "TOTAL"
   },
   et: {
@@ -312,6 +330,8 @@ const t = {
     comment: "Kommentaar",
     date: "Tellimuse kuupäev",
     support: "Küsimuste korral",
+    cash: "Sularaha",
+    card: "Pangakaart",
     total: "KOKKU"
   }
 }[lang] || {
@@ -331,7 +351,19 @@ const t = {
 };
 
 
+function getPaymentText(payment, t) {
+    const p = (payment || "").toLowerCase().trim();
 
+    if (p === "cash" || p === "наличные")
+        return t.cash;
+
+    if (p === "card" || p === "карта")
+        return t.card;
+
+    return payment;
+}
+
+const paymentText = getPaymentText(data.payment, t);
 
   const orderId = data.orderId || "-";
 
@@ -375,7 +407,7 @@ const hasPromo = promoCode.length > 0;
 const hasDiscount = discount < 0;
 
 // CASH CHECK
-const isCash = data.payment === "Наличные";
+const isCash = data.payment === "cash";
 
 // BASE TOTAL
 const baseTotal = subtotal + deliveryPrice + discount;
@@ -534,7 +566,7 @@ ${isCash ? `
         <p><b>${t.name}:</b> ${data.name || "-"}</p>
 <p><b>${t.phone}:</b> ${data.phone || "-"}</p>
         <p><b>Email:</b> ${data.email}</p>
-        <p><b>${t.payment}:</b> ${data.payment}</p>
+        <p><b>${t.payment}:</b> ${paymentText}</p>
         <p>
   <b>${t.method}:</b>
   ${isDelivery ? t.delivery : t.pickup}
